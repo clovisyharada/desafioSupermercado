@@ -1,0 +1,172 @@
+{
+	"info": {
+		"_postman_id": "10b338f6-bb4c-49f9-af44-f34d8964222c",
+		"name": "DesafioSupermercado",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "3514842",
+		"_collection_link": "https://www.postman.com/dark-equinox-423161/workspace/gftbank/collection/3514842-10b338f6-bb4c-49f9-af44-f34d8964222c?action=share&source=collection_link&creator=3514842"
+	},
+	"item": [
+		{
+			"name": "1.massa de teste",
+			"item": [
+				{
+					"name": "insert lancamentos",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"let samples = [\r",
+									"{ \"id\": 1, \"data\": \"2023-11-12T00:08:00.000\", \"descricao\": \"Faturamento caixa 123\", \"valor\": 201, \"tipo\": \"crédito\" },\r",
+									"{ \"id\": 2, \"data\": \"2023-11-12T00:16:00.000\", \"descricao\": \"Faturamento caixa 123\", \"valor\": 202, \"tipo\": \"crédito\" },\r",
+									"{ \"id\": 3, \"data\": \"2023-11-12T00:20:00.000\", \"descricao\": \"Faturamento caixa 123\", \"valor\": 203, \"tipo\": \"crédito\" },\r",
+									"{ \"id\": 4, \"data\": \"2023-11-13T00:08:00.000\", \"descricao\": \"Faturamento caixa 123\", \"valor\": 204, \"tipo\": \"crédito\" },\r",
+									"{ \"id\": 5, \"data\": \"2023-11-13T00:16:00.000\", \"descricao\": \"Faturamento caixa 123\", \"valor\": 205, \"tipo\": \"crédito\" },\r",
+									"{ \"id\": 6, \"data\": \"2023-11-13T00:20:00.000\", \"descricao\": \"Faturamento caixa 123\", \"valor\": 206, \"tipo\": \"crédito\" },\r",
+									"{ \"id\": 7, \"data\": \"2023-11-14T00:08:00.000\", \"descricao\": \"Faturamento caixa 123\", \"valor\": 207, \"tipo\": \"crédito\" },\r",
+									"{ \"id\": 8, \"data\": \"2023-11-14T00:16:00.000\", \"descricao\": \"Faturamento caixa 123\", \"valor\": 208, \"tipo\": \"crédito\" },\r",
+									"{ \"id\": 9, \"data\": \"2023-11-14T00:20:00.000\", \"descricao\": \"Faturamento caixa 123\", \"valor\": 209, \"tipo\": \"crédito\" },\r",
+									"{ \"id\": 10, \"data\": \"2023-11-15T00:08:00.000\", \"descricao\": \"Faturamento caixa 123\", \"valor\": 199, \"tipo\": \"crédito\" },\r",
+									"{ \"id\": 11, \"data\": \"2023-11-12T00:08:00.000\", \"descricao\": \"Despesas operacionais\", \"valor\": 101, \"tipo\": \"débito\" },\r",
+									"{ \"id\": 12, \"data\": \"2023-11-12T00:16:00.000\", \"descricao\": \"Despesas operacionais\", \"valor\": 102, \"tipo\": \"débito\" },\r",
+									"{ \"id\": 13, \"data\": \"2023-11-12T00:20:00.000\", \"descricao\": \"Despesas operacionais\", \"valor\": 103, \"tipo\": \"débito\" },\r",
+									"{ \"id\": 14, \"data\": \"2023-11-13T00:08:00.000\", \"descricao\": \"Despesas operacionais\", \"valor\": 104, \"tipo\": \"débito\" },\r",
+									"{ \"id\": 15, \"data\": \"2023-11-13T00:16:00.000\", \"descricao\": \"Despesas operacionais\", \"valor\": 105, \"tipo\": \"débito\" },\r",
+									"{ \"id\": 16, \"data\": \"2023-11-13T00:20:00.000\", \"descricao\": \"Despesas operacionais\", \"valor\": 106, \"tipo\": \"débito\" },\r",
+									"{ \"id\": 17, \"data\": \"2023-11-14T00:08:00.000\", \"descricao\": \"Despesas operacionais\", \"valor\": 107, \"tipo\": \"débito\" },\r",
+									"{ \"id\": 18, \"data\": \"2023-11-14T00:16:00.000\", \"descricao\": \"Despesas operacionais\", \"valor\": 108, \"tipo\": \"débito\" },\r",
+									"{ \"id\": 19, \"data\": \"2023-11-14T00:20:00.000\", \"descricao\": \"Despesas operacionais\", \"valor\": 109, \"tipo\": \"débito\" },\r",
+									"{ \"id\": 20, \"data\": \"2023-11-15T00:08:00.000\", \"descricao\": \"Despesas operacionais\", \"valor\": 99, \"tipo\": \"débito\" },\r",
+									"];\r",
+									"let currentCount = pm.environment.get(\"insertLancamentosCount\")\r",
+									"if (currentCount > 1){\r",
+									"    currentCount = currentCount -1 ;\r",
+									"} else {\r",
+									"    currentCount = samples.length;\r",
+									"}\r",
+									"if (currentCount > 1) postman.setNextRequest(\"insert lancamentos\");\r",
+									"let pos = samples.length - currentCount;\r",
+									"pm.environment.set(\"insertLancamentosCount\", currentCount);\r",
+									"pm.variables.set('massa.id', samples[pos].id);\r",
+									"pm.variables.set('massa.data', samples[pos].data);\r",
+									"pm.variables.set('massa.descricao', samples[pos].descricao);\r",
+									"pm.variables.set('massa.valor', samples[pos].valor);\r",
+									"pm.variables.set('massa.tipo', samples[pos].tipo);\r",
+									" "
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"id\": {{massa.id}},\r\n  \"data\": \"{{massa.data}}\",\r\n  \"descricao\": \"{{massa.descricao}}\",\r\n  \"valor\": {{massa.valor}},\r\n  \"tipo\": \"{{massa.tipo}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{web lancamentos host}}:{{web port lancamentos}}/lancamentos",
+							"host": [
+								"{{web lancamentos host}}"
+							],
+							"port": "{{web port lancamentos}}",
+							"path": [
+								"lancamentos"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2.execução",
+			"item": [
+				{
+					"name": "consulta consolidado",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"data\": \"2023-11-16\",\r\n  \"valor\": 1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{web consolidado host}}:{{web port consolidado}}/consolidados/byDateRange?startDate=2023-10-10&endDate=2023-12-12",
+							"host": [
+								"{{web consolidado host}}"
+							],
+							"port": "{{web port consolidado}}",
+							"path": [
+								"consolidados",
+								"byDateRange"
+							],
+							"query": [
+								{
+									"key": "startDate",
+									"value": "2023-10-10"
+								},
+								{
+									"key": "endDate",
+									"value": "2023-12-12"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "incluir lançamento",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"data\": \"2023-11-17T00:00:00.000Z\",\r\n  \"descricao\": \"mais um6\",\r\n  \"valor\": 125,\r\n  \"tipo\": \"crédito\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{web lancamentos host}}:{{web port lancamentos}}/lancamentos",
+							"host": [
+								"{{web lancamentos host}}"
+							],
+							"port": "{{web port lancamentos}}",
+							"path": [
+								"lancamentos"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

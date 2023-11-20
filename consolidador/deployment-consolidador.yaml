@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: desafio-consolidador-app
+spec:
+  # executa todos os dias a 0:05
+  schedule: "*/3 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: desafio-consolidador-app
+        spec:
+          containers:
+          - name: desafio-consolidador-app
+            image: desafio-consolidador-app:latest
+            imagePullPolicy: IfNotPresent
+            envFrom:
+              - configMapRef:
+                  name: postgres-config
+          restartPolicy: Never

@@ -1,0 +1,4 @@
+### VS Code ###
+.vscode/
+./desafioSupermercado-local.postman_environment.json
+./desafioSupermercado-minikube.postman_environment.json

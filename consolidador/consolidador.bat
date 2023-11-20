@@ -1,0 +1,1 @@
+java -jar target\desafio-consolidador-0.0.1-SNAPSHOT.jar

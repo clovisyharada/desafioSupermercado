@@ -1,0 +1,5 @@
+setx POSTGRES_DB desafio
+setx POSTGRES_USER postgresadmin
+setx POSTGRES_PASSWORD admin123
+setx POSTGRES_HOST 127.0.0.1
+setx POSTGRES_PORT 5432
