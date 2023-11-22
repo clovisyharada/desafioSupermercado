@@ -580,9 +580,32 @@ Há duas formas de recalcular um dia:
 Após a instalação e execução podemos testar usando:
 - Postman
 - pgadmin
-- inikube dashboard
+- Minikube dashboard
 
-No Postman, importe a collection 
-[DesafioSupermercado](DesafioSupermercado.postman_collection.json).
+No Postman, importe:
+- a collection 
+    [DesafioSupermercado](DesafioSupermercado.postman_collection.json).
+- a environment
+    [minikube](DesafioSupermercado.postman_collection.json).
+- a environment
+    [local](DesafioSupermercado.postman_collection.json).
 
+Configure o postman para usar a environment correspondente à versão instalada (minikube ou direto no windows).
+
+A collection possui 2 pastas com 3 configurações de requisição.
+![collection](assets/images/2023-11-21%2021_31_49%20-%20Desafio.png)
+Clique na pasta **1.massa de teste**
+![massa](assets/images/2023-11-21%2021_32_57-1.massa%20de%20teste%20-%20Desafio.png)
+Depois clique em **>Run**.
+![run](assets/images/2023-11-21%2021_34_00-Runner%20-%20Desafio.png)
+Não é necessário alterar nenhuma configuração. Apenas se certifique que está usando a **Environment** correta.
+Clique no botão **Run desafioSupermercado**.
+![result](assets/images/2023-11-21%2021_35_45-run%20result%20-%20Desafio.png)
+Observe se os resultados são com status code 200 ou 201.
+
+Verifique no PGADMIN se a tabela **Lancamento** foi populada.
+
+Aguarde 15 minutos (ou o tempo programado no cronjob do `Consulidador`) ou execute o consolidador manualmente.
+
+Verifique no PGADMIN se a tabela **Consolidado** foi populada.
 
