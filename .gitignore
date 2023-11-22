@@ -2,3 +2,8 @@
 .vscode/
 ./desafioSupermercado-local.postman_environment.json
 ./desafioSupermercado-minikube.postman_environment.json
+README2.MD
+**/*.jar
+**/*.jar.original
+**/target
+**/Help.md
