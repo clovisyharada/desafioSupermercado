@@ -27,26 +27,26 @@ Toda a aplicação foi criada na plataforma Kubernetes. Porém, é possível exe
 ![Arquitetura](assets/images/arq1.drawio.png)
 
 ## Desenho alternativo
-Inicialmente pensei em construir esta arquitetura alternativa 1, mas a implementação seria mais demorada e os testes mais complexos pois exigiria a instalação e configuração de um serviço de mensageria.
+```
+Para ver esta solução alternativa faça o checkout da branch **kafka** deste mesmo repositório.
+```
+
+Inicialmente pensei em construir esta arquitetura alternativa 1, mas a implementação seria mais demorada e os testes mais complexos pois exigiria a instalação e configuração de um serviço de mensageria, um identity server e outros.
 ![Arquitetura](assets/images/arq4.drawio.png)
 Neste caso, supondo que o processo de inclusão de lançamentos fosse custoso (demorado), seria interessante que este processamento fosse realizado de forma assíncrona.
 
 Nesta arquitetura, precisamos refatorar o Repositório de lançamentos dividindo entre consulta e alteração.
-Após a refatoração, a API Lancamentos irá realizar as consultas usando o Repositório que acessa diretamente a base de dados e as transações serão enviadas para um tópico assíncrono.
+Após a refatoração, a API Lancamentos irá realizar as consultas usando o Repositório que acessa diretamente a base de dados e as transações serão enviadas para um tópico assíncrono **Lancamento**.
 
-Um Kafka JDBC Sink Connector consome o tópico e salva a operação na base de dados de lançamentos.
+Um microsserviço (Lancamento-processador) consome o tópico Consolidado e salva o resultado na base de dados de Lancamento.
 
-Um microserviço Consolidador Kafka Streams, utiliza a API Kafka Streams para realizar a consolidação e enviar um evento com o resultado no tópico Consolidado.
-
-Um Kafka JDBC Sink Connector consome o tópico Consolidado e salva o resultado na base de dados de Consolidado.
-
-Um Kafka JDBC Sink Connector consome o tópico Consolidado e salva o resultado no LakeHouse (datalake + datawarehouse).
+Um Kafka Sink Connector consome o tópico **Lancamento** e salva o resultado no LakeHouse (datalake + datawarehouse).
 
 Os dados no LakeHouse poderão ser usados para análise e gestão.
 
 Vantagens desta arquitetura:
-- Mais resiliente - os tópicos permitem que o sistema atenda melhor a picos de requisições
-- É muito mais fácil escalar um cluster Kafka do que um cluster de base de dados
+- Mais resiliente - os tópicos permitem que o sistema atenda melhor a picos de requisições e a indisponibilidades temporárias.
+- É muito mais fácil escalar um cluster Kafka do que um cluster de base de dados.
 - Fornecemos uma interface bem definida para exportação dos dados
 
 
@@ -465,9 +465,32 @@ Há duas formas de recalcular um dia:
 Após a instalação e execução podemos testar usando:
 - Postman
 - pgadmin
-- inikube dashboard
+- Minikube dashboard
 
-No Postman, importe a collection 
-[DesafioSupermercado](DesafioSupermercado.postman_collection.json).
+No Postman, importe:
+- a collection 
+    [DesafioSupermercado](DesafioSupermercado.postman_collection.json).
+- a environment
+    [minikube](DesafioSupermercado.postman_collection.json).
+- a environment
+    [local](DesafioSupermercado.postman_collection.json).
 
+Configure o postman para usar a environment correspondente à versão instalada (minikube ou direto no windows).
+
+A collection possui 2 pastas com 3 configurações de requisição.
+![collection](assets/images/2023-11-21%2021_31_49%20-%20Desafio.png)
+Clique na pasta **1.massa de teste**
+![massa](assets/images/2023-11-21%2021_32_57-1.massa%20de%20teste%20-%20Desafio.png)
+Depois clique em **>Run**.
+![run](assets/images/2023-11-21%2021_34_00-Runner%20-%20Desafio.png)
+Não é necessário alterar nenhuma configuração. Apenas se certifique que está usando a **Environment** correta.
+Clique no botão **Run desafioSupermercado**.
+![result](assets/images/2023-11-21%2021_35_45-run%20result%20-%20Desafio.png)
+Observe se os resultados são com status code 200 ou 201.
+
+Verifique no PGADMIN se a tabela **Lancamento** foi populada.
+
+Aguarde 15 minutos (ou o tempo programado no cronjob do `Consulidador`) ou execute o consolidador manualmente.
+
+Verifique no PGADMIN se a tabela **Consolidado** foi populada.
 

@@ -4,7 +4,7 @@ metadata:
   name: desafio-consolidador-app
 spec:
   # executa todos os dias a 0:05
-  schedule: "*/3 * * * *"
+  schedule: "*/15 * * * *"
   jobTemplate:
     spec:
       template:
