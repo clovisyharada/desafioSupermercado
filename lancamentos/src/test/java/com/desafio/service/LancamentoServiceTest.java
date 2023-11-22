@@ -1,6 +1,8 @@
 package com.desafio.service;
 
 import com.desafio.model.Lancamento;
+import com.desafio.repository.LancamentoCommandKafkaRepository;
+import com.desafio.repository.LancamentoCommandRepository;
 import com.desafio.repository.LancamentoRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -20,6 +22,8 @@ class LancamentoServiceTest {
 
     @Mock
     private LancamentoRepository lancamentoRepository;
+    @Mock
+    private LancamentoCommandKafkaRepository lancamentoCommandRepository;
 
     @InjectMocks
     private LancamentoService lancamentoService;
@@ -32,7 +36,6 @@ class LancamentoServiceTest {
         lancamento.setId(id);
 
         when(lancamentoRepository.findById(id)).thenReturn(Optional.of(lancamento));
-
         // Act
         Optional<Lancamento> result = lancamentoService.getLancamentoById(id);
 
@@ -62,9 +65,12 @@ class LancamentoServiceTest {
     @Test
     void testSaveLancamento() {
         // Arrange
+        long id = 1L;
         Lancamento lancamento = new Lancamento();
+        lancamento.setId(id);
 
         when(lancamentoRepository.save(lancamento)).thenReturn(lancamento);
+        when(lancamentoCommandRepository.save(lancamento)).thenReturn(lancamento);
 
         // Act
         Lancamento result = lancamentoService.saveLancamento(lancamento);

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 public class ConsolidadorService {
@@ -50,7 +51,8 @@ public class ConsolidadorService {
         Consolidado anterior = consolidadoService.getLastConsolidado();
         if (anterior == null) {
             // como não tem nenhum consolidado, calcula desde o início
-            LocalDate inicio = lancamentoService.obterPrimeiraData().toLocalDate();
+            LocalDateTime primeiro = lancamentoService.obterPrimeiraData();
+            LocalDate inicio = primeiro != null ? primeiro.toLocalDate() : ontem;
             consolidaIntervalo(inicio, ontem, BigDecimal.ZERO);
         } else if (anterior.getData().isBefore(ontem)) { // não calcula saldo se já tiver saldo postorior
              // calcular a partir da data do último consolidado

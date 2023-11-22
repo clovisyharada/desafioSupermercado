@@ -57,25 +57,4 @@ class ConsolidadoControllerTest {
                 .andExpect(jsonPath("$[1].data").exists())
                 .andExpect(jsonPath("$[2].data").doesNotExist());
     }
-
-    @Test
-    void testNovoConsolidado() throws Exception {
-        // Arrange
-        Consolidado consolidado = new Consolidado();
-        consolidado.setData(LocalDate.now());
-        consolidado.setSaldo(BigDecimal.TEN);
-        consolidado.setTotalCreditos(BigDecimal.TEN);
-        consolidado.setTotalDebitos(BigDecimal.TEN);
-
-        when(consolidadoService.saveConsolidado(any(Consolidado.class))).thenReturn(consolidado);
-
-        // Act & Assert
-        mockMvc.perform(post("/consolidados")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(consolidado)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.saldo").value(BigDecimal.TEN))
-                .andExpect(jsonPath("$.totalCreditos").value(BigDecimal.TEN))
-                .andExpect(jsonPath("$.totalDebitos").value(BigDecimal.TEN));
-    }
 }

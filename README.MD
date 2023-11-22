@@ -20,6 +20,9 @@ cair.
 Em dias de picos, o serviço de consolidado diário recebe 500 requisições por segundos, com no
 máximo 5% de perda de requisições.
 # Desenho da solução
+Esta é a solução simplificada para facilitar a instalação e validação local.
+A solução descrita nesta versão utiliza a solução com KAFKA cuja introdução está na próxima seção.
+
 Para esta solução, como a inclusão de lançamentos é simples e a carga é pequena, suportanto alguns erros, as APIs incluem diretamente na base de dados. Em outros cenários poderíamos fazer o processamento de forma assíncrona inserindo comando de inclusão de lançamentos em uma fila/tópico.
 
 A consolidação diária dos lançamentos é executado por um processo batch agendado como um Cronjob do kubernetes. Em um cenário de maior criticidade poderia ser utilizado um sistema de agendamento com monitoramento e nitificação mais robusto como o UC4 por exemplo. Esse processo batch foi construído como um microserviço. Neste cenário simplificado, poderia ser utilizado o agendador da própria base de dados ou uma ferramenta ETL, por exemplo.
@@ -27,26 +30,24 @@ Toda a aplicação foi criada na plataforma Kubernetes. Porém, é possível exe
 ![Arquitetura](assets/images/arq1.drawio.png)
 
 ## Desenho alternativo
-Inicialmente pensei em construir esta arquitetura alternativa 1, mas a implementação seria mais demorada e os testes mais complexos pois exigiria a instalação e configuração de um serviço de mensageria.
+Neste documento vamos descrever e instalar esta versão da solução.
+
+Inicialmente pensei em construir esta arquitetura alternativa 1, mas a implementação seria mais demorada e os testes mais complexos pois exigiria a instalação e configuração de um serviço de mensageria, um identity server e outros.
 ![Arquitetura](assets/images/arq4.drawio.png)
 Neste caso, supondo que o processo de inclusão de lançamentos fosse custoso (demorado), seria interessante que este processamento fosse realizado de forma assíncrona.
 
 Nesta arquitetura, precisamos refatorar o Repositório de lançamentos dividindo entre consulta e alteração.
-Após a refatoração, a API Lancamentos irá realizar as consultas usando o Repositório que acessa diretamente a base de dados e as transações serão enviadas para um tópico assíncrono.
+Após a refatoração, a API Lancamentos irá realizar as consultas usando o Repositório que acessa diretamente a base de dados e as transações serão enviadas para um tópico assíncrono **Lancamento**.
 
-Um Kafka JDBC Sink Connector consome o tópico e salva a operação na base de dados de lançamentos.
+Um microsserviço (Lancamento-processador) consome o tópico Consolidado e salva o resultado na base de dados de Lancamento.
 
-Um microserviço Consolidador Kafka Streams, utiliza a API Kafka Streams para realizar a consolidação e enviar um evento com o resultado no tópico Consolidado.
-
-Um Kafka JDBC Sink Connector consome o tópico Consolidado e salva o resultado na base de dados de Consolidado.
-
-Um Kafka JDBC Sink Connector consome o tópico Consolidado e salva o resultado no LakeHouse (datalake + datawarehouse).
+Um Kafka Sink Connector consome o tópico **Lancamento** e salva o resultado no LakeHouse (datalake + datawarehouse).
 
 Os dados no LakeHouse poderão ser usados para análise e gestão.
 
 Vantagens desta arquitetura:
-- Mais resiliente - os tópicos permitem que o sistema atenda melhor a picos de requisições
-- É muito mais fácil escalar um cluster Kafka do que um cluster de base de dados
+- Mais resiliente - os tópicos permitem que o sistema atenda melhor a picos de requisições e a indisponibilidades temporárias.
+- É muito mais fácil escalar um cluster Kafka do que um cluster de base de dados.
 - Fornecemos uma interface bem definida para exportação dos dados
 
 
@@ -110,6 +111,25 @@ Este microserviço faz o controle de lançamentos. Possui 1 endpoint:
 Para diminuir a dependência da infraestrutura (base de dados relacional) foi utilizado o modelo Onion, injetando a implementação da dependência fazendo com que a lógica de negócio dependa apenas da interface.
 ![Arquitetura](assets/images/arq-soft-lancamento.drawio.png)
 Também foi utilizada a vantagem do Spring Data para criar a implementação do JPA automaticamente.
+Nesta versão, injetamos a dependência LancamentoCommandKafkaRepository para gerar um evento no Kafka e não salvar diretamente na base de dados.
+
+## Microserviço "desafio-lancamento-processador-app"
+Este microserviço faz o controle de lançamentos. Ele recebe os eventos de **Lancamento** e persiste na base de dados.
+Os lançamentos são imutáveis e não podem ser alterados ou excluídos.
+    Entrada (evento Lancamento no Kafka):
+    ```JSON
+    {
+        "data": "2023-11-16T00:00:00.000",
+        "descricao": "Faturamento caixa 123",
+        "valor": 1050,
+        "tipo": "crédito"
+    }
+    ```
+### Arquitetura de software
+Para diminuir a dependência da infraestrutura (base de dados relacional) foi utilizado o modelo Onion, injetando a implementação da dependência fazendo com que a lógica de negócio dependa apenas da interface.
+![Arquitetura](assets/images/arq-soft-lancamento-processador.drawio.png)
+Também foi utilizada a vantagem do Spring Data para criar a implementação do JPA automaticamente.
+
 
 ## Microserviço "desafio-consolidado-app"
 Este microserviço fornece o relatório de saldo diário consolidado. Possui 1 endpoint:
@@ -170,10 +190,11 @@ Também foi utilizada a vantagem do Spring Data para criar a implementação do 
 A aplicação foi desenvolvida para executar no Kubernetes, porém, é possível executar num computador físico ou VM.
 
 ## Estrutura do projeto
-Este repositório contém 4 projetos
+Este repositório contém 5 projetos
 - common - model e repository
 - consolidado - microsserviço api do relatório consolidado
 - lancamentos - microsserviço api de lançamentos 
+- lancamento-processador - microsserviço listener que persiste os lançamentos 
 - consolidador - microsserviço que contém o batch consolidador
 
 Além disso, este repositório contém arquivos de configuração dos serviços de base de dados e configuração do minikube.
@@ -182,7 +203,55 @@ A pasta /assets contém as imagens utilizadas nesta documentação.
 ## Pré-requistos gerais
 - OpenJDK 21
 - Maven 3.9.5 (ou versão acima)
+- WSL2
 
+# Instalação do Confluent Platform em modo Local no WSL2
+Baseado em https://docs.confluent.io/platform/current/installation/installing_cp/zip-tar.html
+- Abra um terminal WSL2 Ubunto
+- update do Ubuntu
+
+    ```
+    sudo apt-get update && sudo apt-get upgrade -y
+    ```
+- ncessário java versão 11
+    ```
+    java -version
+    sudo apt install openjdk-11-jre-headless
+    export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+    ```
+- download e untar confluent community. Para este guia, estou supondo que a pasta atual é a home do usuário (/home/`username` ou seja `~/`)
+    ```
+    curl -O https://packages.confluent.io/archive/7.5/confluent-7.5.2.tar.gz
+    tar xzf confluent-7.5.2.tar.gz
+    ```
+- configurar CONFLUENT_HOME e PATH
+    ```
+    export CONFLUENT_HOME=~/confluent-7.5.2
+    export PATH=$PATH:$CONFLUENT_HOME/bin
+    ```
+- testar path
+    ```
+    confluent --help
+    ```
+- instalar JDBC connector
+    ```
+    confluent-hub install confluentinc/kafka-connect-jdbc:latest
+    ```
+- obtenha o IP do WSL2 com o comando `ifconfig`. Para este guia troque todas as referências a 172.9.9.9 pelo IP do WSL2.
+- configurar para que aplicações externas ao WSL2 acessem o Kafka é necessário mudar as seguintes variáveis no arquivo `~/confluent-7.5.2/etc/kafka/server.properties`:
+    ```
+    listeners=PLAINTEXT://:9092
+    advertised.listeners=PLAINTEXT://172.9.9.9:9092
+    listener.security.protocol.map=PLAINTEXT:PLAINTEXT,SSL:SSL,SASL_PLAINTEXT:SASL_PLAINTEXT,SASL_SSL:SASL_SSL
+    ```
+- executar o Confluent Platform - pode ser que de erros de timeout (mensagem de erro simples como "Error: Kafka failed to start"), execute novamente
+    ```
+    confluent local services start
+    ```
+    - Após iniciar o Confluent Platform, verifique abrindo a URL
+    ```
+    http://localhost:9021/
+    ```
 # Instalação com Minikube
 Caso seja escolhida a opção com kubernetes, é necessário um cluster instalado.
 
@@ -194,7 +263,6 @@ Caso ainda não tenha o minikube, sugiro instalar com WSL2/ubuntu. Cuidado, exis
 A instalação do minikube é simples, basta fazer o download do Minikube.exe e colocar no %PATH%.
  
 O download pode ser feito seguindo as instruções em https://minikube.sigs.k8s.io/docs/start/.
-
 
 Para configurar e executar, use o comando:
 ```
@@ -208,7 +276,9 @@ Após a execução do Minikube, configure o serviço Ingres com Nginx usando o c
 Feito isso o Minikube está instalado, configurado e executando. Abra um novo terminal (cmd) para executa o dashboard `minikube dashboard`, esse comando irá iniciar o serviço e irá abrir o navegado na página de monitoramento do Minikube.
 
 ## Instalação do PostgreSql
-No terminal, vá para a pasta do projeto. Nessa pasta existem alguns arquivo, entre eles `postgresconf.yaml`, `postgrespv` e `postgres.yaml`. Execute os comandos:
+No terminal, vá para a pasta do projeto. Nessa pasta existem alguns arquivo, entre eles `postgresconf.yaml`, `postgrespv` e `postgres.yaml`.
+No arquivo `postgresconf.yaml`, altere 172.9.9.9 pelo IP do WSL2 obtido anteriormente.
+Depois execute os comandos:
 ```
 kubectl apply -f postgresconf.yaml
 kubectl apply -f postgrespv.yaml
@@ -228,6 +298,7 @@ Agora, no schema "desafio", execute as instruções SQL que estão no arquivo `c
 
 ## Configuração da resolução de domínios
 Inclua no arquivo c:\windows\drivers\etc\hosts, as seguintes configurações.
+Não esqueça de trocar 172.9.9.9 pelo endeço IP do WSL2 que foi obtido durante a instalaçao do Kafka. Se não anotou, é possível obter o endereço abrindo um terminal do ubuntu usar o comando `ifconfig`
 ```
 #ingress & keycloak
 127.0.0.1 ingress-nginx-controller-admission.ingress-nginx.svc
@@ -235,7 +306,11 @@ Inclua no arquivo c:\windows\drivers\etc\hosts, as seguintes configurações.
 
 #desafio supermercado
 127.0.0.1 lancamentos.desafio.info consolidado.desafio.info
+
+#kafka
+172.9.9.9 wsl2
 ```
+
 ## Instalação do componente **desafio-common**
 No terminal, vá para a pasta do projeto e vá para a sub-pasta `common` (esta é a pasta do projeto do componente common). Então compile, empacote e instale no repositório local do Maven:
 ```
@@ -269,7 +344,35 @@ postgres-67d5897d8f-2ct7m                  1/1     Running   0          12h
 ```
 Para ver o log do microsserviço utilize o comando `kubectl logs desafio-lancamentos-app-bfb978bc9-9rncg`, substituindo o nome do POD.
 Você pode acessar a especificação swagger na URL `http://localhost:30005/swagger-ui/index.html`
+Ou, usando o Ingress NGINX: `http://lancamentos.desafio.info/swagger-ui/index.html`
 
+## Instalação do microsserviço Lancamento-processador
+No terminal, vá para a pasta do projeto e vá para a sub-pasta `lancamento-processador` (esta é a pasta do projeto do microserviço lancamento-processador). Então compile o microsserviço, empacote e crie a imagem docker:
+```
+mvn clean install
+docker build --file=Dockerfile --tag=desafio-lancamento-processador-app:latest --rm=true .
+```
+Agora carrege a imagem no minikube.
+```
+minikube image load desafio-lancamento-processador-app:latest
+```
+Hora de iniciar o microsserviço:
+```
+kubectl apply -f deployment-lancamento-processador.yaml
+```
+Esse comando irá iniciar 2 PODs contendo o microserviço lancamento-processador.
+
+Os PODs podem ser vistos no Dashboard. Ou através do comando `kubectl get pods`. O resultado do comando será algo semelhante a:
+```
+NAME                                                  READY   STATUS    RESTARTS      AGE
+desafio-lancamento-processador-app-7bf765cb47-26bgr   1/1     Running   0             10s
+desafio-lancamento-processador-app-7bf765cb47-66grm   1/1     Running   0             10s
+desafio-lancamentos-app-bfb978bc9-726b2               1/1     Running   0             9m41s
+desafio-lancamentos-app-bfb978bc9-nfl56               1/1     Running   0             9m41s
+keycloak-6b8864dcdc-ftz77                             1/1     Running   5 (45m ago)   2d21h
+postgres-67d5897d8f-v5bk9                             1/1     Running   4 (45m ago)   2d21h
+```
+Para ver o log do microsserviço utilize o comando `kubectl logs desafio-lancamento-processador-app-7bf765cb47-26bgr`, substituindo o nome do POD.
 
 ## Instalação do microsserviço Consolidado
 No terminal, vá para a pasta do projeto e vá para a sub-pasta `consolidado` (esta é a pasta do projeto do microserviço consolidado). Então compile o microsserviço, empacote e crie a imagem docker:
@@ -299,6 +402,7 @@ postgres-67d5897d8f-2ct7m                  1/1     Running   0          12h
 ```
 Para ver o log do microsserviço utilize o comando `kubectl logs desafio-consolidado-app-5bb47dcfd5-ktn65`, substituindo o nome do POD.
 Você pode acessar a especificação swagger na URL `http://localhost:30006/swagger-ui/index.html`
+Ou, usando o Ingress NGINX: `http://consolidado.desafio.info/swagger-ui/index.html`
 
 ## Instalação do microsserviço batch Consolidador
 No terminal, vá para a pasta do projeto e vá para a sub-pasta `consolidador` (esta é a pasta do projeto do microserviço consolidador). Então compile o microsserviço, empacote e crie a imagem docker:
@@ -416,6 +520,17 @@ Esse comando irá iniciar o microserviço "desafio-lancamentos-app" na porta 808
 
 Você pode acessar a especificação swagger na URL `http://localhost:8080/swagger-ui/index.html`
 
+## Instalação do microsserviço Lancamento-processador
+No terminal, vá para a pasta do projeto e vá para a sub-pasta `lancamentos-processador` (esta é a pasta do projeto do microserviço lançamento-processador). Então compile o microsserviçoe empacote:
+```
+mvn clean install
+```
+Hora de iniciar o microsserviço:
+```
+java -jar target\desafio-lancamentos-processador-0.0.1-SNAPSHOT.jar
+```
+Esse comando irá iniciar o microserviço "desafio-lancamento-processador-app" que passará a receber eventos do tópico **Lancamento**.
+
 ## Instalação do microsserviço Consolidado
 No terminal, vá para a pasta do projeto e vá para a sub-pasta `consolidado` (esta é a pasta do projeto do microserviço consolidado). Então compile o microsserviçoe empacote:
 ```
@@ -425,9 +540,9 @@ Hora de iniciar o microsserviço:
 ```
 java -jar target\desafio-consolidado-0.0.1-SNAPSHOT.jar
 ```
-Esse comando irá iniciar o microserviço "desafio-consolidado-app" na porta 8081.
+Esse comando irá iniciar o microserviço "desafio-consolidado-app" na porta 8082.
 
-Você pode acessar a especificação swagger na URL `http://localhost:8081/swagger-ui/index.html`
+Você pode acessar a especificação swagger na URL `http://localhost:8082/swagger-ui/index.html`
 
 
 ## Instalação do microsserviço batch Consolidador

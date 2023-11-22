@@ -2,10 +2,12 @@ package com.desafio.service;
 
 import com.desafio.model.ConsolidacaoLancamentos;
 import com.desafio.model.Lancamento;
+import com.desafio.repository.LancamentoCommandRepository;
 import com.desafio.repository.LancamentoRepository;
 import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,14 +18,12 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 @Service
 public class LancamentoService {
 
     private final LancamentoRepository lancamentoRepository;
-
-    public LancamentoService(LancamentoRepository lancamentoRepository) {
-        this.lancamentoRepository = lancamentoRepository;
-    }
+    private final LancamentoCommandRepository lancamentoCommandRepository;
 
     public Optional<Lancamento> getLancamentoById(long id) {
         return lancamentoRepository.findById(id);
@@ -34,7 +34,7 @@ public class LancamentoService {
     }
 
     public Lancamento saveLancamento(Lancamento lancamento) {
-        return lancamentoRepository.save(lancamento);
+        return lancamentoCommandRepository.save(lancamento);
     }
 
     public void deleteLancamentoById(long id) {

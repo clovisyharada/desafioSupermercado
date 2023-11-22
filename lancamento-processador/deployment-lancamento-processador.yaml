@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: desafio-lancamento-processador-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: desafio-lancamento-processador-app
+  template:
+    metadata:
+      labels:
+        app: desafio-lancamento-processador-app
+    spec:
+      containers:
+        - name: desafio-lancamento-processador-app
+          image: desafio-lancamento-processador-app:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: postgres-config

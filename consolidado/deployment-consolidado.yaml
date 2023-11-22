@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: desafio-consolidado-app
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: desafio-consolidado-app
@@ -32,8 +32,8 @@ spec:
     app: desafio-consolidado-app
   ports:
   - name: http
-    port: 81
-    targetPort: 8081
+    port: 80
+    targetPort: 8082
     nodePort: 30006
 ---
 apiVersion: networking.k8s.io/v1
@@ -53,4 +53,4 @@ spec:
               service:
                 name: consolidado-service
                 port:
-                  number: 81
+                  number: 80
